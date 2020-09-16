@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    certmanager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: ghost
+    release: ghost
+  name: ghost
+spec:
+  rules:
+  - host: blog.domain.com
+    http:
+      paths:
+      - backend:
+          serviceName: ghost
+          servicePort: http
+        path: /
+  tls:
+  - hosts:
+    - blog.domain.com
+    secretName: blog.domain.com-tls

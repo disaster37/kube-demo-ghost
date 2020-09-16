@@ -1,0 +1,98 @@
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mariadb
+    release: ghost
+  name: ghost-mariadb
+  namespace: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+      release: ghost
+  serviceName: ghost-mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+        release: ghost
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: mariadb
+                  release: ghost
+      containers:
+      - env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mariadb-root-password
+              name: ghost-mariadb
+        - name: MARIADB_USER
+          value: bn_ghost
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mariadb-password
+              name: ghost-mariadb
+        - name: MARIADB_DATABASE
+          value: bitnami_ghost
+        image: docker.io/bitnami/mariadb:10.1.37
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - exec mysqladmin status -uroot -p$MARIADB_ROOT_PASSWORD
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - exec mysqladmin status -uroot -p$MARIADB_ROOT_PASSWORD
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: mariadb
+        ports:
+        - containerPort: 3306
+          name: mysql
+          protocol: TCP
+        resources: {}
+        volumeMounts:
+        - mountPath: /bitnami/mariadb
+          name: data
+        - mountPath: /opt/bitnami/mariadb/conf/my.cnf
+          name: config
+          subPath: my.cnf
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: ghost-mariadb
+        name: config
+      - name: data
+        persistentVolumeClaim:
+          claimName: mariadb
+  updateStrategy:
+    type: RollingUpdate
+ 

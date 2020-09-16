@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: mariadb
+    release: ghost
+  name: mariadb
+  namespace: ghost
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: ""

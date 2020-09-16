@@ -1,0 +1,112 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: ghost
+    release: ghost
+  name: ghost
+  namespace: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost
+      release: ghost
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ghost
+        release: ghost
+    spec:
+      containers:
+      - env:
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "no"
+        - name: MARIADB_HOST
+          value: ghost-mariadb
+        - name: MARIADB_PORT_NUMBER
+          value: "3306"
+        - name: GHOST_DATABASE_NAME
+          value: bitnami_ghost
+        - name: GHOST_DATABASE_USER
+          value: bn_ghost
+        - name: GHOST_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mariadb-password
+              name: ghost-mariadb
+        - name: GHOST_HOST
+          value: blog.domain.com/
+        - name: GHOST_PROTOCOL
+          value: http
+        - name: GHOST_PORT_NUMBER
+          value: "80"
+        - name: GHOST_USERNAME
+          value: admin@domain.com
+        - name: GHOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: ghost-password
+              name: ghost
+        - name: GHOST_EMAIL
+          value: admin.domain.com
+        - name: BLOG_TITLE
+          value: My blog
+        image: docker.io/bitnami/ghost:2.21.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            httpHeaders:
+            - name: Host
+              value: blog.domain.com/
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            httpHeaders:
+            - name: Host
+              value: blog.domain.com/
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+        name: ghost
+        ports:
+        - containerPort: 2368
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+        volumeMounts:
+        - mountPath: /bitnami/ghost
+          name: ghost-data
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: ghost-data
+        persistentVolumeClaim:
+          claimName: ghost
